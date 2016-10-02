@@ -1,6 +1,8 @@
 package com.gowhich.androidasynctask;
 
+import android.app.ProgressDialog;
 import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
@@ -8,14 +10,21 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 
-import java.net.HttpURLConnection;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+import org.apache.http.util.EntityUtils;
+
+import java.net.HttpCookie;
 
 public class MainActivity extends AppCompatActivity {
 
     private Button button;
     private ImageView imageView;
     private String imagePath = "http://i2.w.yun.hjfile.cn/slide/201309/8335717857.jpg";
-
+    private ProgressDialog progressDialog;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -25,16 +34,14 @@ public class MainActivity extends AppCompatActivity {
         button = (Button) this.findViewById(R.id.button);
         imageView = (ImageView) this.findViewById(R.id.imageView);
 
+        progressDialog = new ProgressDialog(this);
+        progressDialog.setTitle("下载提示");
+        progressDialog.setMessage("图片下载中.....");
+
         button.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                new Thread(new Runnable() {
-                    @Override
-                    public void run() {
-//                        HttpURLConnection
-
-                    }
-                });
+                new MyTask().execute(imagePath);
             }
         });
 
@@ -50,16 +57,35 @@ public class MainActivity extends AppCompatActivity {
         @Override
         protected void onPreExecute() {
             super.onPreExecute();
+
+            progressDialog.show();
         }
 
         @Override
         protected void onPostExecute(Bitmap bitmap) {
             super.onPostExecute(bitmap);
+
+            imageView.setImageBitmap(bitmap);
+            progressDialog.dismiss();
         }
 
         @Override
         protected Bitmap doInBackground(String... params) {
-            return null;
+            HttpClient httpClient = new DefaultHttpClient();
+            HttpGet httpGet = new HttpGet(params[0]);
+            Bitmap bitmap = null;
+            try{
+                HttpResponse httpResponse = httpClient.execute(httpGet);
+                if(httpResponse.getStatusLine().getStatusCode() == 200){
+                    HttpEntity httpEntity = httpResponse.getEntity();
+
+                    byte[] data = EntityUtils.toByteArray(httpEntity);
+                    bitmap  = BitmapFactory.decodeByteArray(data, 0, data.length);
+                }
+            }catch (Exception e){
+                e.printStackTrace();
+            }
+            return bitmap;
         }
     }
 }
